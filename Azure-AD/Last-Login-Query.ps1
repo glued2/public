@@ -6,12 +6,11 @@
 #Import-Module AzureADPreview
 #You'll need to connect to Azure-AD - I tent to just run this interactively, then run the script. 
 #Connect-AzureAD
-#
 
 $ADGroupName = "UK-Sales-Department" 
 $ExportPath = "C:\Users\Nick\$ADGroupName-Export.csv"
 
-#$UsersToCheck = (Get-ADGroupMember -Identity $ADGroupName | Where objectClass -EQ "user" | Get-ADUser | select UserPrincipalName).UserPrincipalName
+$UsersToCheck = (Get-ADGroupMember -Identity $ADGroupName | Where objectClass -EQ "user" | Get-ADUser | select UserPrincipalName).UserPrincipalName
 Write-Host -f Green "AD Group Query - Complete - Total Found: "$UsersToCheck.count 
 
 $count = 0
@@ -33,7 +32,6 @@ foreach ($User in $UsersToCheck) {
 }
 
 Write-Host -f Green "Total of $count Records Checked - Writing CSV to $ExportPath " 
-
 echo $result | Export-CSV -Path $ExportPath
 
 
