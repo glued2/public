@@ -35,9 +35,6 @@ function Set-NewName($StoreNumber,$DeviceObjectID,$OriginalDeviceName){
      #convert to 2 digit number (good for upto 99 devices as we start at 01).      
      $thisnum = "{0:D2}" -f $startnum
      $NewNameFull = "$NewNamePrefix-$thisnum"
-
-     Write-Host -ForegroundColor Green "Start: $startnum This: $thisnum  Full: $NewNameFull"
-
      #unless we can see it already in the list, we'll rename - that way we start at the lowest.
      if ($ExistingDevices.DisplayName -notcontains $NewNameFull) { 
         
