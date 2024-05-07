@@ -64,27 +64,43 @@ Function Cleanup-Versions($folder)
               Write-Host -f Green "`t `t"$File.Name" - $oldindicator  is: $originalfilesizemb Mb with $TotalVersions versions using $Totalsize Mb - will keep $versiondecision - with $VersionsToDelete to delete its $Totalsize Mb too big!" 
               For($i=0; $i -lt $VersionsToDelete; $i++)
               {
-              ####This is what does the delete of the specific version!
+               #This is the delete command!!!
               $Versions[0].DeleteObject()
               }
+              ##Now we've deleted, we'll check how many versions, what we have and what we've saved:-  
+              $newpreviousversions = Get-PnPProperty -ClientObject $File -Property Versions
+              $newpreviousversionssize = $newpreviousversions | Measure-Object -Property Size -Sum | Select-Object -expand Sum
+              $savedsize = $rawsize - $newpreviousversionssize
+              $TotalDeleted = $TotalDeleted + $savedsize
         }
-        else { Write-host -f Cyan "`tSkipping:"$File.Name"  - $TotalVersions Versions using $Totalsize and the original file using $originalfilesizemb Mb - but $versiondecision is keep"  }
+        else {   #Write-host -f Cyan "`tSkipping:"$File.Name"  - $TotalVersions Versions using $Totalsize and the original file using $originalfilesizemb Mb - but $versiondecision is keep (total: $TotalDeleted)"  
+           }
     }
 
 }
 
-Function Get-LargeFileList ($folder)
+Function Get-LargeFileList ($FolderServerRelativeURL)
 { 
-  foreach ($List in $folder){ 
-    $Name = Get-PnPProperty -ClientObject $List -Property Name
-    $ThisFolder = "$FolderServerRelativeURL/$Name"
+  if ($DirectoryList = Get-PnPFolderInFolder $FolderServerRelativeURL) {
+    foreach ($List in $DirectoryList)
+    { 
+     $Name = Get-PnPProperty -ClientObject $List -Property Name
+     $ThisFolder = "$FolderServerRelativeURL/$Name"
      ###  Write-Host -f Yellow "`tScanning Directory:"$ThisFolder
-     #Object Length is the measure of the _current_ version - not the total of all history;  We only refer larger current files, to the cleanup.  
-    $SPFolder = Get-PnPFolderItem -FolderSiteRelativeUrl $ThisFolder -Recursive -ItemType File  |  Where-Object {$_.Length -gt $DeleteOverBytes} ; 
-    Write-Host -f Yellow "`t Directory scan complete. " $SPFolder.count " oversize file found in folder: $Name  " ;
-    #Call Funtion to clean up the versions (doesnt seem especially inefficient passing zero to this function - so will do so rather than adding logic)
-    Cleanup-Versions $SPFolder
+     #Object Length is the measure of the _current_ version - not the total of all history;  We only refer larger current files, to the cleanup.   
+     Get-LargeItemListandcallCleanup ($ThisFolder)
+    }
   }
+  else { 
+    Get-LargeItemListandcallCleanup ($FolderServerRelativeURL)
+    Write-Host -f Yellow "`tNo sub-directories found - scan complete. " $SPFolder.count " oversize files found."  
+  }
+}
+
+Function Get-LargeItemListandcallCleanup ($folder)
+{
+    $SPFolder = Get-PnPFolderItem  -FolderSiteRelativeUrl $folder -Recursive -ItemType File  |  Where-Object {$_.Length -gt $DeleteOverBytes}  
+    Cleanup-Versions $SPFolder 
 }
 
 
@@ -92,13 +108,15 @@ Function Get-LargeFileList ($folder)
 Function Site-Cleanup ($FolderServerRelativeURL){
   #Set Some Variables at run time:- 
   ##Variables we use later - dont change these:- 
+  $global:TotalDeleted = 0
   $DeleteOverBytes = $DeleteOverMb * 1048576
   $Today = Get-Date
   $OldDate = $Today.AddDays(-365)
   ##
   Write-Host "Cleaning Up Previous Versions for $FolderServerRelativeURL"
-  $DirectoryList = Get-PnPFolderInFolder $FolderServerRelativeURL
-  Get-LargeFileList $DirectoryList
+  Get-LargeFileList $FolderServerRelativeURL
+  $TotalDeletedMb = [Math]::Round(($TotalDeleted/1048576),2)
+  Write-Host -f Red "Clean Up Complete with $TotalDeletedMb Mb saved."
 }
 
 
