@@ -15,7 +15,7 @@ Connect-PnPOnline -Url https://[sitename].sharepoint.com/sites/[site] -UseWebLog
 #Set the number of versions to keep.
 $PreviousVersionsToKeep = 5
 #Old versions is hard coded to be anything more than a year old.
-$OldPreviousVersionsToKeep = 0
+$OldPreviousVersionsToKeep = 2
 #Delete Previous Versions where the total size is over xxxMb (1024 - means only files over 1Gb will be targetted)
 #This is the measure of the current versions size - not the previous versions or the total! 
 $DeleteOverMb = 50
@@ -71,7 +71,7 @@ Function Cleanup-Versions($folder)
               $newpreviousversions = Get-PnPProperty -ClientObject $File -Property Versions
               $newpreviousversionssize = $newpreviousversions | Measure-Object -Property Size -Sum | Select-Object -expand Sum
               $savedsize = $rawsize - $newpreviousversionssize
-              $TotalDeleted = $TotalDeleted + $savedsize
+              $global:TotalDeleted = $global:TotalDeleted + $savedsize
         }
         else {   #Write-host -f Cyan "`tSkipping:"$File.Name"  - $TotalVersions Versions using $Totalsize and the original file using $originalfilesizemb Mb - but $versiondecision is keep (total: $TotalDeleted)"  
            }
@@ -97,11 +97,14 @@ Function Get-LargeFileList ($FolderServerRelativeURL)
   }
 }
 
+
 Function Get-LargeItemListandcallCleanup ($folder)
-{
+{  
+    Write-Host "Folder to scan: $folder"
     $SPFolder = Get-PnPFolderItem  -FolderSiteRelativeUrl $folder -Recursive -ItemType File  |  Where-Object {$_.Length -gt $DeleteOverBytes}  
     Cleanup-Versions $SPFolder 
 }
+
 
 
 #Split Directory to breakdown and try and speed up / provide feedback:
@@ -121,3 +124,6 @@ Function Site-Cleanup ($FolderServerRelativeURL){
 
 
 Site-Cleanup "Shared Documents"
+
+
+#Completely re-written, but with some help from here: https://www.sharepointdiary.com/2018/05/sharepoint-online-delete-version-history-using-pnp-powershell.html#ixzz7HwEq9cp3
