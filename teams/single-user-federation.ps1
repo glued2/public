@@ -5,8 +5,6 @@
 
 Connect-MicrosoftTeams
 
-
-
 ## Check Existing Settings  (expect to see AllowFederatedUsers as False is its blocked globally)
  Get-CsTenantFederationConfiguration
  ## now check the policies  (Global will be everyone unless otherwise specified)
