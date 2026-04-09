@@ -6,10 +6,10 @@
 #Update-Module PnP.Powershell
 #Install-Module -Name PnP.Powershell -force
 
-
-#First Connect - this can be done manually...
-Connect-PnPOnline -Url https://[sitename].sharepoint.com/sites/[site] -UseWebLogin
-#Disconnect-PnPOnline
+#[2026 update] - PNP needs an app registration for you to connect.
+#Run this to create the app - and then get the AppID (it will tell you in the console)
+#Register-PnPEntraIDAppForInteractiveLogin -ApplicationName "PnP.PowerShell" -Tenant xxxxx.onmicrosoft.com
+#Connect-PnPOnline -Url https://[sitename].sharepoint.com/sites/[site] -tenant xxxxx.onmicrosoft.com -ClientId [AppID from above]
 
 
 #Set the number of versions to keep.
