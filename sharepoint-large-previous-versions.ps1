@@ -9,13 +9,14 @@
 
 #[2026 update] - PNP needs an app registration for you to connect.
 #Run this to create the app - and then get the AppID (it will tell you in the console)
-#Register-PnPEntraIDAppForInteractiveLogin -ApplicationName "PnP.PowerShell" -Tenant xxxxx.onmicrosoft.com
-#Connect-PnPOnline -Url https://[sitename].sharepoint.com/sites/[site] -tenant xxxxx.onmicrosoft.com -ClientId [AppID from above]
+#Register-PnPEntraIDAppForInteractiveLogin -ApplicationName "PnP.PowerShell" -Tenant vfxplc.onmicrosoft.com
+Connect-PnPOnline -Url https://xxxx.sharepoint.com/sites/[name] -tenant xxx.onmicrosoft.com -ClientId 1234-5678-9101112-12
 
 #Set the folder we're going to delete stuff from:-
-$FolderServerRelativeURL = "Shared Documents/[folderpath]/Folder/no-slash-on/end"
+#$FolderServerRelativeURL = "Shared Documents/[folderpath]/Folder/no-slash-on/end"
+$FolderServerRelativeURL = "Shared Documents"
 #Set the number of versions to keep.
-$VersionsToKeep = 100
+$VersionsToKeep = 250
 #Delete Previous Versions where the total size is over xxxMb (1024 - means only files over 1Gb will be targetted)
 $DeleteOverMb = 1024
 #
@@ -33,19 +34,31 @@ Function Cleanup-Versions($folder)
         $rawsize = $Versions | Measure-Object -Property Size -Sum | Select-Object -expand Sum
         $Totalsize = [Math]::Round(($rawsize/1048576),2)
         #Write-Host -f Green "`t `t"$File.Name" has $TotalVersions - so I will keep $VersionsToKeep - with $VersionsToDelete to delete - its $size MB and $singversionrawsize MB big" 
-        If(($TotalVersions -gt $VersionsToKeep) -and ($Totalsize -gt $DeleteOverMb))
+        if (($TotalVersions -gt $VersionsToKeep) -and ($Totalsize -gt $DeleteOverMb))
         {
               Write-Host -f Green "`t `tCleaning Up File:"$file.Name" (using $Totalsize Mb with $TotalVersions Versions)"
-              For($i=0; $i -lt $VersionsToDelete; $i++)
-              {
-              ##Write-Host -f Cyan "`tCleaning Up File: "$file.Name" (using $Totalsize Mb) - Deleting The Oldest Version:" $Versions[0].VersionLabel
-              $Versions[0].DeleteObject()
-              }
-              #$Ctx.ExecuteQuery()
+              $batch = 150
+              $batchcount = 0
+              ##dont just itterate through a number...
+              $ToDelete = $Versions | Select-Object -First $VersionsToDelete
+                foreach ($Version in $ToDelete) {
+                Write-Host "Deleting version $($Version.VersionLabel) of $($File.Name) - size $([Math]::Round(($Version.Size/1048576),2)) Mb"
+
+                $Version.DeleteObject()
+                $batchcount++ 
+                if ($batchcount -eq $batch) { 
+                  Write-Host -f DarkGreen "Batch of $batch Deletions - Executing ";
+                  Invoke-PnPQuery;  
+                  $batchcount = 0
+                }
+            }
+              Write-Host -f DarkGreen "Running final query - no batch"
+              Invoke-PnPQuery
               #Write-Host -f Red "Done"
             
         }
-        else { Write-host -f Yellow "`tSkipping:"$File.Name"  - $TotalVersions Versions and $Totalsize Mb "  }
+        else { #Write-host -f Yellow "`tSkipping:"$File.Name"  - $TotalVersions Versions and $Totalsize Mb "  
+        }
 
     }
 
